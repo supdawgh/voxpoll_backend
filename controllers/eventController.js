@@ -9,49 +9,82 @@ const createEvent = async (req, res) => {
       eventType,
       eventDescription,
       eventBanner,
+      eventStartDate,
       eventEndDate,
       candidates,
     } = req.body;
 
-    // Create the event
+    const user = await User.findOne({ email: req.user });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Step 1: Create the Event
     const newEvent = new Event({
       eventName,
       eventType,
       eventDescription,
       eventBanner,
-      eventEndDate,
+      eventStartDate: new Date(eventStartDate),
+      eventEndDate: new Date(eventEndDate),
+      author: user._id, // Assuming you have user information in req.user
     });
 
-    // Save the event to get the ID
-    const savedEvent = await newEvent.save();
+    await newEvent.save();
 
-    // Create and save the candidates
-    const candidateDocs = await Candidate.insertMany(
-      candidates.map((candidate) => ({
-        ...candidate,
-        eventId: savedEvent._id,
-      }))
-    );
+    // Step 2: Create the Candidates
+    const candidateIds = [];
+    for (const candidateData of candidates) {
+      const newCandidate = new Candidate({
+        name: candidateData.name,
+        bio: candidateData.bio,
+        photo: candidateData.photo,
+        eventId: newEvent._id,
+      });
 
-    // Update the event with candidate IDs
-    savedEvent.candidates = candidateDocs.map((candidate) => candidate._id);
-    await savedEvent.save();
+      await newCandidate.save();
+      candidateIds.push(newCandidate._id);
+    }
 
+    // Step 3: Update the Event with Candidate IDs
+    newEvent.candidates = candidateIds;
+    await newEvent.save();
+
+    // Step 4: Send a Response
     res.status(201).json({
       message: "Event and candidates created successfully",
-      event: savedEvent,
-      candidates: candidateDocs,
+      event: newEvent,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Error creating event and candidates",
-      error: error.message,
-    });
+    console.error("Error creating event and candidates:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getAllMyEvents = async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.user });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const events = await Event.find({ author: user._id }).populate(
+      "candidates"
+    );
+    if (!events || events.length === 0) {
+      return res.status(204).json({ message: "No events found" });
+    }
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 const getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find().populate("candidates");
+    const events = await Event
+      .find
+      // { eventStatus: "verified" }
+      ()
+      .populate("candidates");
     if (!events || events.length === 0) {
       return res.status(204).json({ message: "No events found" });
     }
@@ -87,16 +120,17 @@ const getEventsByCategory = async (req, res) => {
     if (!req.params.category)
       return res.status(400).json({ message: "Category is required" });
 
-    const events = await Event.find({ eventType: req.params.category })
+    const events = await Event.find({
+      eventType: req.params.category,
+      // eventStatus: "verified",
+    })
       .populate("candidates")
       .exec();
 
     if (!events || events.length === 0) {
-      return res
-        .status(404)
-        .json({
-          message: `No events found for category ${req.params.category}`,
-        });
+      return res.status(204).json({
+        message: `No events found for category ${req.params.category}`,
+      });
     }
 
     res.json(events);
@@ -110,4 +144,5 @@ module.exports = {
   getAllEvents,
   getEventsByCategory,
   getEventById,
+  getAllMyEvents,
 };

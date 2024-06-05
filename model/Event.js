@@ -14,11 +14,22 @@ const eventSchema = new Schema(
     eventDescription: {
       type: String,
     },
+    eventStatus: {
+      type: String,
+      default: "unverified",
+    },
     eventBanner: {
       type: String,
     },
+    eventStartDate: {
+      type: Date,
+    },
     eventEndDate: {
       type: Date,
+    },
+    author: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
     candidates: [
       {
