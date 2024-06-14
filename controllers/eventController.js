@@ -67,9 +67,9 @@ const getAllMyEvents = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    const events = await Event.find({ author: user._id }).populate(
-      "candidates"
-    );
+    const events = await Event.find({ author: user._id })
+      .populate("candidates")
+      .sort({ createdAt: -1 });
     if (!events || events.length === 0) {
       return res.status(204).json({ message: "No events found" });
     }
@@ -80,11 +80,9 @@ const getAllMyEvents = async (req, res) => {
 };
 const getAllEvents = async (req, res) => {
   try {
-    const events = await Event
-      .find
-      // { eventStatus: "verified" }
-      ()
-      .populate("candidates");
+    const events = await Event.find({ eventStatus: "verified" })
+      .populate("candidates")
+      .sort({ createdAt: -1 });
     if (!events || events.length === 0) {
       return res.status(204).json({ message: "No events found" });
     }
@@ -122,9 +120,10 @@ const getEventsByCategory = async (req, res) => {
 
     const events = await Event.find({
       eventType: req.params.category,
-      // eventStatus: "verified",
+      eventStatus: "verified",
     })
       .populate("candidates")
+      .sort({ createdAt: -1 })
       .exec();
 
     if (!events || events.length === 0) {

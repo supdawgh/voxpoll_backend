@@ -52,6 +52,7 @@ app.use("/myevent", require("./routes/event"));
 
 // app.use("/employees", require("./routes/api/employees"));
 app.use("/users", require("./routes/api/users"));
+app.use("/admin", require("./routes/api/admin"));
 
 app.all("*", (req, res) => {
   res.status(404);

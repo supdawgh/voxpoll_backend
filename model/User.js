@@ -14,6 +14,7 @@ const userSchema = new Schema(
     roles: {
       type: [String],
       required: true,
+      enum: ["voter", "admin"],
     },
     citizenship: {
       type: String,
