@@ -20,7 +20,7 @@ const getAllNewEvents = async (req, res) => {
     if (!events || events.length === 0) {
       return res.status(204).json({ message: "No events found" });
     }
-    res.json(events);
+    res.json(events);//response
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -26,13 +26,13 @@ const handleLogin = async (req, res) => {
     const roles = Object.values(foundUser.roles).filter(Boolean);
     // create JWTs
     const accessToken = jwt.sign(
-      {
+      { 
         UserInfo: {
           email: foundUser.email,
           roles: roles,
         },
       },
-      process.env.ACCESS_TOKEN_SECRET,
+      process.env.ACCESS_TOKEN_SECRET, 
       { expiresIn: "1d" }
     );
     // const refreshToken = jwt.sign(

@@ -12,6 +12,8 @@ const credentials = require("./middleware/credentials");
 const mongoose = require("mongoose");
 const connectDB = require("./config/dbConn");
 const PORT = process.env.PORT || 3500;
+const bodyParser = require('body-parser');
+
 
 // Connect to MongoDB
 connectDB();
@@ -25,6 +27,8 @@ app.use(credentials);
 
 // Cross Origin Resource Sharing
 app.use(cors(corsOptions));
+app.use(bodyParser.json({ limit: '50mb' })); // Adjust the limit based on your requirements
+
 
 // built-in middleware to handle urlencoded form data
 app.use(express.urlencoded({ extended: false }));
