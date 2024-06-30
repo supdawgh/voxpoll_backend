@@ -50,7 +50,7 @@ app.use("/register", require("./routes/register"));
 app.use("/auth", require("./routes/auth"));
 app.use("/refresh", require("./routes/refresh"));
 app.use("/logout", require("./routes/logout"));
-
+app.use("/document", require("./routes/api/superAdmin"));
 app.use(verifyJWT);
 app.use("/myevent", require("./routes/event"));
 
