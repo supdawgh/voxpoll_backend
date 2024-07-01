@@ -5,7 +5,7 @@ const handleNewUser = async (req, res) => {
   const { email, password, name, citizenship, RPP, role } = req.body;
   console.log("🚀 ~ handleNewUser ~ req.body:", req.body);
 
-  if (!email || !password || !name || !citizenship || !RPP)
+  if (!email || !password || !name)
     return res.status(400).json({ message: "Required Info not provided" });
 
   // check for duplicate usernames in the db

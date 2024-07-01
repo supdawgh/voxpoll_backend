@@ -1,15 +1,25 @@
 const Document = require("../model/RastriyaParichayaPatra");
 const fs = require("fs");
 const path = require("path");
+const axios = require("axios");
+const FormData = require("form-data");
 
 async function compareFaces(imagePath1, imagePath2) {
+  console.log("read stream ", fs.createReadStream(imagePath1));
   try {
     const form = new FormData();
     form.append("file1", fs.createReadStream(imagePath1));
     form.append("file2", fs.createReadStream(imagePath2));
 
+    console.log("🚀 ~ compareFaces ~ form:", form);
+
+    console.log({
+      headers: {
+        ...form.getHeaders(),
+      },
+    });
     const response = await axios.post(
-      "http://127.0.0.1:8000/compare-faces/",
+      "http://localhost:8000/compare-faces/",
       form,
       {
         headers: {
@@ -17,6 +27,7 @@ async function compareFaces(imagePath1, imagePath2) {
         },
       }
     );
+    console.log("🚀 ~ compareFaces ~ response:", response);
 
     return response.data;
   } catch (error) {
@@ -122,7 +133,12 @@ const compareImage = async (req, res) => {
     });
 
     const otherFilePath = rppDocument.filePath;
-    const comparisionStatus = await compareFaces(filePath, otherFilePath);
+    const absoluteImagePath1 = path.resolve(__dirname, "..", filePath);
+    const absoluteImagePath2 = path.resolve(__dirname, "..", otherFilePath);
+    const comparisionStatus = await compareFaces(
+      absoluteImagePath1,
+      absoluteImagePath2
+    );
     console.log(comparisionStatus);
   } catch (error) {
     console.error("Error saving document:", error);

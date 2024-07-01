@@ -18,11 +18,9 @@ const userSchema = new Schema(
     },
     citizenship: {
       type: String,
-      required: true,
     },
     RPP: {
       type: String,
-      required: true,
     },
     password: {
       type: String,
