@@ -1,33 +1,22 @@
 const Document = require("../model/RastriyaParichayaPatra");
 const fs = require("fs");
 const path = require("path");
-const axios = require("axios");
-const FormData = require("form-data");
+// Require the Cloudinary library
+const cloudinary = require("cloudinary").v2;
 
-async function compareFaces(imagePath1, imagePath2) {
-  console.log("read stream ", fs.createReadStream(imagePath1));
+//set cloudinary config section
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.API_KEY,
+  api_secret: process.env.API_SECRET,
+});
+
+async function compareFaces(url1, url2) {
   try {
-    const form = new FormData();
-    form.append("file1", fs.createReadStream(imagePath1));
-    form.append("file2", fs.createReadStream(imagePath2));
-
-    console.log("🚀 ~ compareFaces ~ form:", form);
-
-    console.log({
-      headers: {
-        ...form.getHeaders(),
-      },
+    const response = await axios.post("http://127.0.0.1:8000/compare-faces/", {
+      url1,
+      url2,
     });
-    const response = await axios.post(
-      "http://localhost:8000/compare-faces/",
-      form,
-      {
-        headers: {
-          ...form.getHeaders(),
-        },
-      }
-    );
-    console.log("🚀 ~ compareFaces ~ response:", response);
 
     return response.data;
   } catch (error) {
@@ -48,41 +37,36 @@ const uploadDocument = async (req, res) => {
       return res.status(400).send({ msg: "No image data received!" });
     }
 
-    // Extract base64 data from the image string
-    const base64Data = image.replace(/^data:image\/jpeg;base64,/, "");
+    // Upload image to Cloudinary
+    cloudinary.uploader.upload(
+      image,
+      { folder: "Voxpoll" },
+      async (err, result) => {
+        if (err) {
+          console.error("Error uploading image to Cloudinary:", err);
+          return res.status(500).send("Error uploading image");
+        }
 
-    // Create a buffer from the base64 data
-    const buffer = Buffer.from(base64Data, "base64");
-    console.log("🚀 ~ uploadDocument ~ buffer:", buffer);
+        // Get the URL of the uploaded image
+        const uploadedImageUrl = result.secure_url;
+        console.log("🚀 ~ uploadedImageUrl:", uploadedImageUrl);
 
-    // Generate a unique filename or use a specific name if needed
-    const fileName = `RPP_${Date.now()}.jpg`; // Example: webcam-image_1625040335863.jpg
+        // Save information to MongoDB
+        const newDocument = await Document.create({
+          imageUrl: uploadedImageUrl,
+          citizenshipNumber,
+          rastriyaPrarichayaPatraNumber,
+          // Add more fields here if needed
+        });
+        console.log("🚀 ~ uploadDocument ~ newDocument:", newDocument);
 
-    console.log("🚀 ~ uploadDocument ~ fileName:", fileName);
-    // Save the image to a file
-    const filePath = path.join("uploads", fileName);
-    console.log("🚀 ~ uploadDocument ~ filePath:", filePath);
-    fs.writeFile(filePath, buffer, (err) => {
-      if (err) {
-        console.error("Error saving image:", err);
-        return res.status(500).send("Error saving image");
+        // If saving to MongoDB succeeds, send a success response
+        return res.status(201).json({
+          message: "Image uploaded successfully",
+          imageUrl: uploadedImageUrl,
+        });
       }
-    });
-    // Save information to MongoDB after saving image
-
-    const newDocument = await Document.create({
-      fileName,
-      filePath,
-      citizenshipNumber,
-      rastriyaPrarichayaPatraNumber,
-      // Add more fields here if needed
-    });
-    console.log("🚀 ~ fs.writeFile ~ newDocument:", newDocument);
-
-    // If saving to MongoDB succeeds, send a success response
-    return res
-      .status(201)
-      .json({ message: "Image uploaded successfully", filePath });
+    );
   } catch (error) {
     console.error("Error saving document:", error);
     res.status(500).send({ msg: "Error saving document", error });
@@ -93,18 +77,31 @@ const compareImage = async (req, res) => {
   try {
     const { citizenshipNumber, rastriyaPrarichayaPatraNumber, webCamImage } =
       req.body;
-    console.log("🚀 ~ compareImage ~ citizenshipNumber:", citizenshipNumber);
-    console.log(
-      "🚀 ~ compareImage ~ rastriyaPrarichayaPatraNumber:",
-      rastriyaPrarichayaPatraNumber
-    );
-    console.log("🚀 ~ compareImage ~ image:", webCamImage);
 
     if (!webCamImage) {
-      return res.status(400).send("No image provided");
+      return res.status(400).send({ msg: "No image data received!" });
     }
-    //search the document based on citizenshipNumber, rastriyaPrarichayaPatraNumber,
-    const rppDocument = await Document.findOne({
+
+    let imageUrl1, imageUrl2;
+    // Upload image to Cloudinary
+    cloudinary.uploader.upload(
+      webCamImage,
+      { folder: "Voxpoll" },
+      async (err, result) => {
+        if (err) {
+          console.error("Error uploading image to Cloudinary:", err);
+          return res.status(500).send("Error uploading image");
+        }
+
+        // Get the URL of the uploaded image
+        const uploadedImageUrl = result.secure_url;
+        console.log("🚀 ~ uploadedImageUrl:", uploadedImageUrl);
+        imageUrl1 = uploadedImageUrl;
+      }
+    );
+
+    //fetch url based on citizenship number and rpp number
+    const document = await Document.findOne({
       citizenshipNumber,
       rastriyaPrarichayaPatraNumber,
     });
@@ -133,12 +130,7 @@ const compareImage = async (req, res) => {
     });
 
     const otherFilePath = rppDocument.filePath;
-    const absoluteImagePath1 = path.resolve(__dirname, "..", filePath);
-    const absoluteImagePath2 = path.resolve(__dirname, "..", otherFilePath);
-    const comparisionStatus = await compareFaces(
-      absoluteImagePath1,
-      absoluteImagePath2
-    );
+    const comparisionStatus = await compareFaces(filePath, otherFilePath);
     console.log(comparisionStatus);
   } catch (error) {
     console.error("Error saving document:", error);

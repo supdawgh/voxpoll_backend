@@ -3,20 +3,18 @@ const Schema = mongoose.Schema;
 
 const documentSchema = new Schema(
   {
-    fileName: {
+    imageUrl: {
       type: String,
-    },
-    filePath: {
-      type: String,
+      required: true,
     },
     citizenshipNumber: {
       type: String,
-      unique: true
+      unique: true,
     },
     rastriyaPrarichayaPatraNumber: {
       type: String,
-      unique: true
-    }
+      unique: true,
+    },
   },
   { timestamps: true }
 );
