@@ -12,8 +12,7 @@ const credentials = require("./middleware/credentials");
 const mongoose = require("mongoose");
 const connectDB = require("./config/dbConn");
 const PORT = process.env.PORT || 3500;
-const bodyParser = require('body-parser');
-
+const bodyParser = require("body-parser");
 
 // Connect to MongoDB
 connectDB();
@@ -27,8 +26,7 @@ app.use(credentials);
 
 // Cross Origin Resource Sharing
 app.use(cors(corsOptions));
-app.use(bodyParser.json({ limit: '50mb' })); // Adjust the limit based on your requirements
-
+app.use(bodyParser.json({ limit: "50mb" })); // Adjust the limit based on your requirements
 
 // built-in middleware to handle urlencoded form data
 app.use(express.urlencoded({ extended: false }));
@@ -50,8 +48,8 @@ app.use("/register", require("./routes/register"));
 app.use("/auth", require("./routes/auth"));
 app.use("/refresh", require("./routes/refresh"));
 app.use("/logout", require("./routes/logout"));
-app.use("/document", require("./routes/api/superAdmin"));
 app.use(verifyJWT);
+app.use("/document", require("./routes/api/superAdmin"));
 app.use("/myevent", require("./routes/event"));
 
 // app.use("/employees", require("./routes/api/employees"));

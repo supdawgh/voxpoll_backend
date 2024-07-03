@@ -1,6 +1,9 @@
 const Document = require("../model/RastriyaParichayaPatra");
 const fs = require("fs");
 const path = require("path");
+const axios = require("axios");
+const Candidate = require("../model/Candidate");
+const User = require("../model/User");
 // Require the Cloudinary library
 const cloudinary = require("cloudinary").v2;
 
@@ -12,6 +15,9 @@ cloudinary.config({
 });
 
 async function compareFaces(url1, url2) {
+  console.log("🚀 ~ compareFaces ~ url1:", url1);
+  console.log("🚀 ~ compareFaces ~ url2:", url2);
+
   try {
     const response = await axios.post("http://127.0.0.1:8000/compare-faces/", {
       url1,
@@ -24,7 +30,7 @@ async function compareFaces(url1, url2) {
       "Error comparing faces:",
       error.response ? error.response.data : error.message
     );
-    return false;
+    return { match: false };
   }
 }
 
@@ -72,19 +78,23 @@ const uploadDocument = async (req, res) => {
     res.status(500).send({ msg: "Error saving document", error });
   }
 };
-
 const compareImage = async (req, res) => {
+  const {
+    citizenshipNumber,
+    rastriyaPrarichayaPatraNumber,
+    webCamImage,
+    candidate,
+    voter,
+  } = req.body;
   try {
-    const { citizenshipNumber, rastriyaPrarichayaPatraNumber, webCamImage } =
-      req.body;
-
     if (!webCamImage) {
       return res.status(400).send({ msg: "No image data received!" });
     }
 
     let imageUrl1, imageUrl2;
+    let uploadedImageUrl;
     // Upload image to Cloudinary
-    cloudinary.uploader.upload(
+    await cloudinary.uploader.upload(
       webCamImage,
       { folder: "Voxpoll" },
       async (err, result) => {
@@ -94,7 +104,7 @@ const compareImage = async (req, res) => {
         }
 
         // Get the URL of the uploaded image
-        const uploadedImageUrl = result.secure_url;
+        uploadedImageUrl = result.secure_url;
         console.log("🚀 ~ uploadedImageUrl:", uploadedImageUrl);
         imageUrl1 = uploadedImageUrl;
       }
@@ -105,33 +115,31 @@ const compareImage = async (req, res) => {
       citizenshipNumber,
       rastriyaPrarichayaPatraNumber,
     });
-    console.log("🚀 ~ compareImage ~ rppDocument:", rppDocument);
-    if (!rppDocument) return res.sendStatus(404);
+    imageUrl2 = document.imageUrl;
+    console.log("🚀 ~ compareImage ~ document:", document);
 
-    // Extract base64 data from the image string
-    const webcamBase64Data = webCamImage.replace(
-      /^data:image\/jpeg;base64,/,
-      ""
-    );
+    const response = await compareFaces(imageUrl1, imageUrl2);
+    if (response.match === true) {
+      console.log("🚀 ~ compareImage ~ candidate:", candidate);
+      const can = await Candidate.findOneAndUpdate(
+        { _id: candidate },
+        { $inc: { voteCount: 1 } },
+        { new: true }
+      );
+      console.log("🚀 ~ compareImage ~ can:", can);
 
-    // Create a buffer from the base64 data
-    const webCamBuffer = Buffer.from(webcamBase64Data, "base64");
-
-    // Generate a unique filename or use a specific name if needed
-    const fileName = `webcam_image_${Date.now()}.jpg`; // Example: webcam-image_1625040335863.jpg
-
-    // Save the image to a file
-    const filePath = path.join("uploads", fileName);
-    fs.writeFile(filePath, webCamBuffer, (err) => {
-      if (err) {
-        console.error("Error saving image:", err);
-        return res.status(500).send("Error saving image");
-      }
-    });
-
-    const otherFilePath = rppDocument.filePath;
-    const comparisionStatus = await compareFaces(filePath, otherFilePath);
-    console.log(comparisionStatus);
+      const usr = await User.findOneAndUpdate(
+        { _id: voter },
+        { $push: { votes: can._id, votedEvents: can.eventId } }
+      );
+      res.status(201).json({
+        message: "Vote Success",
+      });
+    } else {
+      res.status(401).json({
+        message: "Could not verify face",
+      });
+    }
   } catch (error) {
     console.error("Error saving document:", error);
     res.status(500).send({ msg: "Error saving document", error });

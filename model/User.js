@@ -22,6 +22,14 @@ const userSchema = new Schema(
     RPP: {
       type: String,
     },
+    votes: {
+      type: [Schema.Types.ObjectId],
+      ref: "Candidate",
+    },
+    votedEvents: {
+      type: [Schema.Types.ObjectId],
+      ref: "Event",
+    },
     password: {
       type: String,
       required: true,

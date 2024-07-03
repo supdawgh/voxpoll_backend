@@ -19,6 +19,9 @@ router
 router
   .route("/:id")
   .get(verifyRoles(ROLES_LIST.Admin), usersController.getUser);
+router
+  .route("/my/:id")
+  .get(verifyRoles(ROLES_LIST.User), usersController.getUser);
 
 router.route("/faceRecognition").post(faceController.faceRecognition);
 

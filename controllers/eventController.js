@@ -63,7 +63,10 @@ const createEvent = async (req, res) => {
 
 const getAllMyEvents = async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.user });
+    const user = await User.findOne({ email: req.user }).populate("votes");
+
+    console.log("🚀 ~ user ~ user:", user);
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -73,7 +76,10 @@ const getAllMyEvents = async (req, res) => {
     if (!events || events.length === 0) {
       return res.status(204).json({ message: "No events found" });
     }
-    res.json(events);
+    res.json({
+      events,
+      votes: user.votes,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -113,6 +119,25 @@ const getEventById = async (req, res) => {
   }
 };
 
+const getCandidateById = async (req, res) => {
+  try {
+    if (!req.params.id)
+      return res.status(400).json({ message: "Event ID required" });
+
+    const candidate = await Candidate.findById(req.params.id);
+
+    if (!candidate) {
+      return res
+        .status(404)
+        .json({ message: `candidate ID ${req.params.id} not found` });
+    }
+
+    res.json(candidate);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const getEventsByCategory = async (req, res) => {
   try {
     if (!req.params.category)
@@ -144,4 +169,5 @@ module.exports = {
   getEventsByCategory,
   getEventById,
   getAllMyEvents,
+  getCandidateById,
 };

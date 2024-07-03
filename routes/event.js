@@ -16,6 +16,7 @@ router
   .get(verifyRoles(ROLES_LIST.User), eventController.getAllMyEvents);
 
 router.get("/:id", eventController.getEventById);
+router.get("/candidate/:id", eventController.getCandidateById);
 
 router.get("/category/:category", eventController.getEventsByCategory);
 
