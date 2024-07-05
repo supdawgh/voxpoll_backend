@@ -115,6 +115,9 @@ const compareImage = async (req, res) => {
       citizenshipNumber,
       rastriyaPrarichayaPatraNumber,
     });
+    if (!document) {
+      return res.status(401).send({ msg: "No image data received!" });
+    }
     imageUrl2 = document.imageUrl;
     console.log("🚀 ~ compareImage ~ document:", document);
 
